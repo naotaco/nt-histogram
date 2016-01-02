@@ -1,9 +1,5 @@
 ﻿using Microsoft.Graphics.Canvas;
 using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Media.Imaging;
 
 namespace Naotaco.Histogram.Win2d
 {
@@ -17,7 +13,7 @@ namespace Naotaco.Histogram.Win2d
         /// In case this value is more than 1, only a pixel per specified length will be read and calculated.
         /// 3 is set as default.
         /// </summary>
-        public uint PixelSkipRate = 3;
+        public uint PixelSkipRate { get; set; } = 3;
 
         /// <summary>
         /// Used to specify histogram resolution.
@@ -80,25 +76,22 @@ namespace Naotaco.Histogram.Win2d
 
             _init();
 
-            FpsTimer.Interval = TimeSpan.FromMilliseconds(FPS_INTERVAL);
-            FpsTimer.Tick += (sender, arg) =>
-            {
-                var fps = (double)FrameCount * 1000 / (double)FPS_INTERVAL;
-                FrameCount = 0;
-                Debug.WriteLine(string.Format("[Histogram] {0} fps", fps));
-            };
-
             IsRunning = false;
         }
 
         public void Stop()
         {
-            FpsTimer.Stop();
         }
 
-        private const int FPS_INTERVAL = 5000;
-        int FrameCount = 0;
-        DispatcherTimer FpsTimer = new DispatcherTimer();
+        int _FrameCount = 0;
+        public int FrameCount { get { return _FrameCount; } }
+
+        public int GetFrameCountAndReset()
+        {
+            var temp = FrameCount;
+            _FrameCount = 0;
+            return temp;
+        }
 
         private void _init()
         {
@@ -122,27 +115,22 @@ namespace Naotaco.Histogram.Win2d
         /// <returns></returns>
         public void CreateHistogram(CanvasBitmap source)
         {
-            if (source == null )
+            if (source == null || source?.GetPixelBytes() == null)
             {
                 return;
             }
 
             IsRunning = true;
 
-            if (!FpsTimer.IsEnabled)
-            {
-                FpsTimer.Start();
-            }
-
             _init();
 
-            FrameCount++;
+            _FrameCount++;
 
             CalculateHistogramFromPixelBuffer(source);
         }
 
         /// <summary>
-        /// Calculate histogram from WritableBitmap.Pixelbuffer.
+        /// Calculate histogram from CanvasBitmap. Currently, only B8G8R8A8UIntNormalized pixel format is supported.
         /// </summary>
         /// <param name="bitmap"></param>
         private void CalculateHistogramFromPixelBuffer(CanvasBitmap bitmap)
@@ -150,11 +138,12 @@ namespace Naotaco.Histogram.Win2d
             //var pixels = bitmap.PixelBuffer.ToArray();
             var pixels = bitmap.GetPixelBytes();
 
-            for (uint i = 0; i + 2 < pixels.Length; i += (PixelSkipRate << 2))
+            for (uint i = 0; i + 3 < pixels.Length; i += (PixelSkipRate << 2))
             {
                 SortPixel(pixels[i], PixelColor.Blue);
                 SortPixel(pixels[i + 1], PixelColor.Green);
                 SortPixel(pixels[i + 2], PixelColor.Red);
+                // pixels[i+3] is Alpha channel in B8G8R8A8UIntNormalized format.
             }
 
             for (int i = 0; i < Resolution; i++)
@@ -195,10 +184,7 @@ namespace Naotaco.Histogram.Win2d
         {
             int value = (int)v;
 
-            if (shiftBytes != 0)
-            {
-                value = value >> shiftBytes;
-            }
+            value = value >> shiftBytes;
 
             switch (color)
             {
