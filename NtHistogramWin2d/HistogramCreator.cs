@@ -115,7 +115,8 @@ namespace Naotaco.Histogram.Win2d
         /// <returns></returns>
         public void CreateHistogram(CanvasBitmap source)
         {
-            if (source == null || source?.GetPixelBytes() == null)
+            byte[] pixels = source?.GetPixelBytes();
+            if (pixels == null)
             {
                 return;
             }
@@ -126,18 +127,15 @@ namespace Naotaco.Histogram.Win2d
 
             _FrameCount++;
 
-            CalculateHistogramFromPixelBuffer(source);
+            CalculateHistogramFromPixelBuffer(pixels);
         }
 
         /// <summary>
         /// Calculate histogram from CanvasBitmap. Currently, only B8G8R8A8UIntNormalized pixel format is supported.
         /// </summary>
         /// <param name="bitmap"></param>
-        private void CalculateHistogramFromPixelBuffer(CanvasBitmap bitmap)
+        private void CalculateHistogramFromPixelBuffer(byte[] pixels)
         {
-            //var pixels = bitmap.PixelBuffer.ToArray();
-            var pixels = bitmap.GetPixelBytes();
-
             for (uint i = 0; i + 3 < pixels.Length; i += (PixelSkipRate << 2))
             {
                 SortPixel(pixels[i], PixelColor.Blue);
