@@ -16,7 +16,7 @@ namespace Naotaco.Histogram
         /// In case this value is more than 1, only a pixel per specified length will be read and calculated.
         /// 3 is set as default.
         /// </summary>
-        public uint PixelSkipRate = 3;
+        public uint PixelSkipRate { get; set; } = 3;
 
         /// <summary>
         /// Used to specify histogram resolution.
