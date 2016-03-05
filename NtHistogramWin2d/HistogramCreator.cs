@@ -119,13 +119,15 @@ namespace Naotaco.Histogram.Win2d
         /// <returns></returns>
         public void CreateHistogram(CanvasBitmap source)
         {
+            if (source == null) { return; }
+
             var size = source.SizeInPixels.Height * source.SizeInPixels.Width * 4; // RGBA
             if (ByteBuffer.Capacity < size)
             {
                 ByteBuffer = (new byte[size]).AsBuffer();
             }
 
-            source?.GetPixelBytes(ByteBuffer);
+            source.GetPixelBytes(ByteBuffer);
             if (ByteBuffer.Length == 0)
             {
                 return;
