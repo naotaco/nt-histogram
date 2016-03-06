@@ -1,5 +1,7 @@
 ﻿using Microsoft.Graphics.Canvas;
 using System;
+using System.Runtime.InteropServices.WindowsRuntime;
+using Windows.Storage.Streams;
 
 namespace Naotaco.Histogram.Win2d
 {
@@ -107,6 +109,8 @@ namespace Naotaco.Histogram.Win2d
             }
         }
 
+        private IBuffer ByteBuffer = (new byte[0]).AsBuffer();
+
         /// <summary>
         /// Start to create histogram. Once it's completed, OnHistogramCreated will be called.
         /// Recommend to run this method on background task with lower priority.
@@ -115,8 +119,16 @@ namespace Naotaco.Histogram.Win2d
         /// <returns></returns>
         public void CreateHistogram(CanvasBitmap source)
         {
-            byte[] pixels = source?.GetPixelBytes();
-            if (pixels == null)
+            if (source == null) { return; }
+
+            var size = source.SizeInPixels.Height * source.SizeInPixels.Width * 4; // RGBA
+            if (ByteBuffer.Capacity < size)
+            {
+                ByteBuffer = (new byte[size]).AsBuffer();
+            }
+
+            source.GetPixelBytes(ByteBuffer);
+            if (ByteBuffer.Length == 0)
             {
                 return;
             }
@@ -127,20 +139,20 @@ namespace Naotaco.Histogram.Win2d
 
             _FrameCount++;
 
-            CalculateHistogramFromPixelBuffer(pixels);
+            CalculateHistogramFromPixelBuffer();
         }
 
         /// <summary>
         /// Calculate histogram from CanvasBitmap. Currently, only B8G8R8A8UIntNormalized pixel format is supported.
         /// </summary>
         /// <param name="bitmap"></param>
-        private void CalculateHistogramFromPixelBuffer(byte[] pixels)
+        private void CalculateHistogramFromPixelBuffer()
         {
-            for (uint i = 0; i + 3 < pixels.Length; i += (PixelSkipRate << 2))
+            for (uint i = 0; i + 3 < ByteBuffer.Length; i += (PixelSkipRate << 2))
             {
-                SortPixel(pixels[i], PixelColor.Blue);
-                SortPixel(pixels[i + 1], PixelColor.Green);
-                SortPixel(pixels[i + 2], PixelColor.Red);
+                SortPixel(ByteBuffer.GetByte(i), PixelColor.Blue);
+                SortPixel(ByteBuffer.GetByte(i + 1), PixelColor.Green);
+                SortPixel(ByteBuffer.GetByte(i + 2), PixelColor.Red);
                 // pixels[i+3] is Alpha channel in B8G8R8A8UIntNormalized format.
             }
 
